@@ -3,14 +3,14 @@
 #include <string.h>
 
 
-#define MAX_NAME_LENGTH 50
-#define MAX_DESC_LENGTH 100
+/*#define MAX_NAME_LENGTH 50
+#define MAX_DESC_LENGTH 150
 
 // Global variables
 struct Task {
     char name[MAX_NAME_LENGTH];
     char description[MAX_DESC_LENGTH];
-};
+};*/
 
 
 
@@ -18,26 +18,28 @@ struct Task {
 //additional functions
 
 
-// addTask function
+// 01 addTask function
 
 void addTask() {
     
-    struct Task newTask;
+    //struct Task newTask;
+    char name[50];
+    char description[150];
     
     printf("Enter the name of the task: ");
-    fgets(newTask.name, MAX_NAME_LENGTH, stdin);
-    newTask.name[strcspn(newTask.name, "\n")] = '\0';
+    //scanf_s("%s", newTask.name, MAX_NAME_LENGTH);
+    scanf("%s", name);
     
     printf("Enter task description: ");
-    fgets(newTask.description, MAX_DESC_LENGTH, stdin);
-    newTask.description[strcspn(newTask.description, "\n")] = '\0';
+    //scanf_s("%s", newTask.description, MAX_DESC_LENGTH);
+    scanf("%s", description);
+    
     
     
     FILE *file = fopen("tasks.txt", "r");
     if (file == NULL) {
         // File doesn't exist, create with header
         file = fopen("tasks.txt", "w");
-        fprintf(file, "Tasks :\n");
         if (file == NULL) {
             printf("Error creating file!\n");
             return;
@@ -52,12 +54,13 @@ void addTask() {
             return;
         }
     }
-    fprintf(file, "Task: %s, Description: %s\n", newTask.name, newTask.description);
+    //fprintf(file, "\nTask: %s, \nDescription: %s\n", newTask.name, newTask.description);
+    fprintf(file, "\nTask: %s \nDescription: %s\n", name, description);
     fclose(file);
 }
 
 
-//viewTasks function
+// 02 viewTasks function
 
 void viewTasks() {
     FILE *file;
