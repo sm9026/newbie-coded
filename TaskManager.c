@@ -3,18 +3,6 @@
 #include <string.h>
 
 
-/*#define MAX_NAME_LENGTH 50
-#define MAX_DESC_LENGTH 150
-
-// Global variables
-struct Task {
-    char name[MAX_NAME_LENGTH];
-    char description[MAX_DESC_LENGTH];
-};*/
-
-
-
-
 //additional functions
 
 
@@ -22,17 +10,17 @@ struct Task {
 
 void addTask() {
     
-    //struct Task newTask;
+    
     char name[50];
     char description[150];
     
     printf("Enter the name of the task: ");
-    //scanf_s("%s", newTask.name, MAX_NAME_LENGTH);
-    scanf("%s", name);
+    
+    fgets(name, sizeof(name), stdin);
     
     printf("Enter task description: ");
-    //scanf_s("%s", newTask.description, MAX_DESC_LENGTH);
-    scanf("%s", description);
+    
+    fgets(description, sizeof(description), stdin);
     
     
     
@@ -54,8 +42,8 @@ void addTask() {
             return;
         }
     }
-    //fprintf(file, "\nTask: %s, \nDescription: %s\n", newTask.name, newTask.description);
-    fprintf(file, "\nTask: %s \nDescription: %s\n", name, description);
+    
+    fprintf(file, "\nTask: %s\nDescription: %s\n", name, description);
     fclose(file);
 }
 
