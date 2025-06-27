@@ -5,6 +5,18 @@
 
 //additional functions
 
+// // //
+void clearInputBuffer() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
+void stripNewline(char *str) {
+    size_t len = strlen(str);
+    if (len > 0 && str[len - 1] == '\n') {
+        str[len - 1] = '\0';
+    }
+}
+
 
 // 01 addTask function
 
@@ -14,14 +26,23 @@ void addTask() {
     char name[50];
     char description[150];
     
+    clearInputBuffer();
     printf("Enter the name of the task: ");
+    if (fgets(name, sizeof(name), stdin) == NULL) {
+        printf("Error reading task name!\n");
+        return;
+    }
+    //fgets(name, sizeof(name), stdin);
+    stripNewline(name); // Remove newline character from the end of the string
     
-    fgets(name, sizeof(name), stdin);
-    
+    clearInputBuffer();
     printf("Enter task description: ");
-    
-    fgets(description, sizeof(description), stdin);
-    
+    if (fgets(description, sizeof(description), stdin) == NULL) {
+        printf("Error reading task description!\n");
+        return;
+    }
+    //fgets(description, sizeof(description), stdin);
+    stripNewline(description); // Remove newline character from the end of the string
     
     
     FILE *file = fopen("tasks.txt", "r");
@@ -32,7 +53,7 @@ void addTask() {
             printf("Error creating file!\n");
             return;
         }
-        fprintf(file, "tasks :\n");
+        fprintf(file, "TASKS :\n\n");
     } else {
         // File exists, close read mode and open in append mode
         fclose(file);
@@ -43,7 +64,7 @@ void addTask() {
         }
     }
     
-    fprintf(file, "\nTask: %s\nDescription: %s\n", name, description);
+    fprintf(file, "...Task: %s\n       .Description: %s\n", name, description);
     fclose(file);
 }
 
@@ -77,8 +98,14 @@ int main(){
     
     while (1)
     {
-        printf("Enter 0 to open the task manager and 1 to exit program\n");
-        scanf("%d", &zero);
+        printf("\nEnter 0 to open the task manager and 1 to exit program\n");
+        if (scanf("%d", &zero) != 1) {
+            printf("Invalid input. Please enter 0 or 1.\n");
+            clearInputBuffer();
+            continue;
+        }
+        
+        
         if (zero == 1) {
             break;
         }
@@ -90,8 +117,15 @@ int main(){
             printf("type 'view' to view all tasks\n");
 
             char command[10];
+            clearInputBuffer();
+            printf("Enter command: ");
+            if (fgets(command, sizeof(command), stdin) == NULL) {
+                printf("Error reading command!\n");
+                continue;
+            }
+            stripNewline(command);
             
-            scanf("%s", command);
+            
             if (strcmp(command, "add") == 0) {
                 addTask();
                 printf("Task added successfully!\n");
@@ -104,6 +138,7 @@ int main(){
             
             else {
                 printf("Invalid command. Please try again.\n");
+                clearInputBuffer();
             }
     }
     }
