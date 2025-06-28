@@ -17,6 +17,7 @@ void stripNewline(char *str) {
     }
 }
 
+int l; //declare taskCount globally
 
 // 01 addTask function
 
@@ -53,7 +54,7 @@ void addTask() {
             printf("Error creating file!\n");
             return;
         }
-        fprintf(file, "TASKS :\n\n");
+        fprintf(file, "TASKS :\n");
     } else {
         // File exists, close read mode and open in append mode
         fclose(file);
@@ -64,35 +65,37 @@ void addTask() {
         }
     }
 
-    int taskCount;
+    int iD; 
     int lineCount = countLinesInFile("tasks.txt");
     if (lineCount == 0) {
-        taskCount = 1; 
+        iD = 1; 
     } else {            
-        taskCount = (lineCount +1)/2;
-    }    
+        iD = (lineCount +1)/2;
+    }  
     
-    fprintf(file, "%d. Task: %s\n...Description: %s\n", taskCount, name, description);
+    fprintf(file, "%d. Task: %s\n...Description: %s\n", iD, name, description);
     fclose(file);
+    
 }
+
 
 
 // 02 viewTasks function
 
 void viewTasks() {
-    FILE *file;
-    file = fopen("tasks.txt", "r");
-    if (file == NULL) {
+    FILE *viewFile;
+    viewFile = fopen("tasks.txt", "r");
+    if (viewFile == NULL) {
         printf("No tasks found.\n");
         return;
     }
 
     char line[256];
-    while (fgets(line, sizeof(line), file)) {
+    while (fgets(line, sizeof(line), viewFile)) {
         printf("%s", line);
     }
-    
-    fclose(file);
+    printf("\nNo of tasks: %d\n", (l-1)/2);
+    fclose(viewFile);
  }
 
 
@@ -100,7 +103,7 @@ void viewTasks() {
 // 03 counting lines in a file
 
 
-int countLinesInFile(const char *filename) {
+int countLinesInFile(char *filename) {
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
         return 0; // File doesn't exist or can't be opened
@@ -119,10 +122,83 @@ int countLinesInFile(const char *filename) {
 }
 
 
+
+
+// 04 deleting a task
+
+
+void deleteTask() {
+    int totalTasks = (l - 1) / 2; // Calculate total tasks based on the number of lines
+    clearInputBuffer();
+    int toDelete;
+    printf("Enter the task number to delete: ");
+    scanf("%d", &toDelete);
+    clearInputBuffer();
+    if (toDelete < 1 || toDelete > totalTasks) {
+        printf("Invalid task number. Please try again.\n");
+        clearInputBuffer();
+        return;
+    }
+    FILE *temp = fopen("tasks.txt", "r");
+    if (temp == NULL) { 
+        printf("No tasks found.\n");
+        return;
+    }
+
+    int lc = countLinesInFile("tasks.txt");
+    int i = 0;
+    char lines[100][250];
+    while (fgets(lines[i], sizeof(lines[i]), temp) && i < lc) {
+        i++;
+    }
+    fclose(temp);
+    FILE *rough = fopen("tasks.txt", "w");
+    if (rough == NULL) {
+        printf("Error opening file for writing!\n");
+        return;
+    }
+    fprintf(rough, "TASKS :\n");
+    i =1;
+    int j;
+    char tsk[100];  
+    char desc[150];
+    int len;
+    int iD=1;
+   while(i<lc){
+    if ((i+1) / 2 == toDelete) {
+        i += 2; // Skip the task to be deleted
+        continue;
+    }
+    len = strlen(lines[i]);
+    for(j = 0; lines[i][j] != '\0'; j++) {
+        tsk[j] = lines[i][j + 3];
+    }
+    tsk[j] = '\0'; // Null-terminate the string
+    i++;
+    len = strlen(lines[i]);
+    for(j = 0;lines[i][j] != '\0'; j++){
+            desc[j] = lines[i][j];
+        }
+        desc[j] = '\0'; // Null-terminate the string
+        i++;
+        fprintf(rough, "%d. %s%s", iD, tsk, desc);
+        iD++;
+    }
+    
+fclose(rough);
+
+}
+
+
+
+
+
 //main function
+
 
 int main(){
     int zero;
+    l = countLinesInFile("tasks.txt");
     
     while (1)
     {
@@ -143,6 +219,8 @@ int main(){
             printf("=========================================================\n");
             printf("type 'add' to add a task\n");
             printf("type 'view' to view all tasks\n");
+            printf("type 'delete' to delete a task\n");
+            printf("=========================================================\n");
 
             char command[10];
             clearInputBuffer();
@@ -162,7 +240,11 @@ int main(){
             else if (strcmp(command, "view") == 0) {
                 viewTasks();   
             }
-            
+            else if (strcmp(command, "delete") == 0) {
+                deleteTask();
+                printf("Task deleted successfully!\n");
+            } 
+                       
             
             else {
                 printf("Invalid command. Please try again.\n");
@@ -171,7 +253,8 @@ int main(){
     }
     }
     
-    return 0;
+        
+return 0;
 
 
  }
