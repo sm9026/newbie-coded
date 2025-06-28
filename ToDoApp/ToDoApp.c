@@ -63,8 +63,16 @@ void addTask() {
             return;
         }
     }
+
+    int taskCount;
+    int lineCount = countLinesInFile("tasks.txt");
+    if (lineCount == 0) {
+        taskCount = 1; 
+    } else {            
+        taskCount = (lineCount +1)/2;
+    }    
     
-    fprintf(file, "...Task: %s\n       .Description: %s\n", name, description);
+    fprintf(file, "%d. Task: %s\n...Description: %s\n", taskCount, name, description);
     fclose(file);
 }
 
@@ -89,6 +97,26 @@ void viewTasks() {
 
 
 
+// 03 counting lines in a file
+
+
+int countLinesInFile(const char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        return 0; // File doesn't exist or can't be opened
+    }
+    
+    int count = 0;
+    char ch;
+    while ((ch = fgetc(file)) != EOF) {
+        if (ch == '\n') {
+            count++;
+        }
+    }
+    
+    fclose(file);
+    return count;
+}
 
 
 //main function
@@ -121,7 +149,7 @@ int main(){
             printf("Enter command: ");
             if (fgets(command, sizeof(command), stdin) == NULL) {
                 printf("Error reading command!\n");
-                continue;
+            
             }
             stripNewline(command);
             
