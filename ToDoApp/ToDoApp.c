@@ -278,11 +278,12 @@ int main()
 
         if (zero == 1)
         {
+            printf("Exiting the ToDoApp. Goodbye!\n");
             break;
         }
         else if (zero == 0)
         {
-            printf("Welcome to the Task Manager!\n");
+            printf("Welcome to the ToDoApp!\n");
             printf("You can add tasks, view tasks, and delete tasks.\n");
             printf("=========================================================\n");
             printf("type 'add' to add a task\n");
