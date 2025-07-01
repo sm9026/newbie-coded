@@ -101,22 +101,13 @@ void addTask()
 
 // 02 viewTasks function
 
-void viewTasks()
+void viewTasks(FILE *viewFile)
 {
-    FILE *viewFile;
-    viewFile = fopen("tasks.txt", "r");
-    if (viewFile == NULL)
-    {
-        printf("No tasks found.\n");
-        return;
-    }
-
     char line[256];
     while (fgets(line, sizeof(line), viewFile))
     {
         printf("%s", line);
     }
-    printf("\nNo of tasks: %d\n", l/3 );
     fclose(viewFile);
 }
 
@@ -348,11 +339,12 @@ int main()
             printf("You can add tasks, view tasks, and delete tasks.\n");
             printf("=========================================================\n");
             printf("type 'add' to add a task\n");
-            printf("type 'view' to view all tasks\n");
+            printf("type 'view all tasks' to view all tasks\n");
             printf("type 'delete' to delete a task\n");
+            printf("type 'view bin' to view deleted tasks\n");
             printf("=========================================================\n");
 
-            char command[10];
+            char command[20];
             clearInputBuffer();
             printf("Enter command: ");
             if (fgets(command, sizeof(command), stdin) == NULL)
@@ -368,15 +360,35 @@ int main()
                 l = countLinesInFile("tasks.txt");
             }
 
-            else if (strcmp(command, "view") == 0)
+            else if (strcmp(command, "view all tasks") == 0)
             {
-                viewTasks();
+                FILE *file = fopen("tasks.txt", "r");
+                if (file == NULL)
+                {
+                    printf("No tasks found.\n");
+                    continue;
+                }
+                viewTasks(file);
+                printf("\nNo of tasks: %d and No of lines in task_file: %d", (l-1)/3, l);
+                fclose(file);
             }
             else if (strcmp(command, "delete") == 0)
             {
                 deleteTask();
                 printf("Task deleted successfully!\n");
                 l = countLinesInFile("tasks.txt");
+            }
+            else if (strcmp(command, "view bin") == 0)
+            {
+                FILE *binFile = fopen("bin.txt", "r");
+                if (binFile == NULL)
+                {
+                    printf("No deleted tasks found.\n");
+                    continue;
+                }
+                viewTasks(binFile);
+                printf("\nNo of deleted tasks: %d", (countLinesInFile("bin.txt")-1)/3);
+                fclose(binFile);
             }
 
             else
