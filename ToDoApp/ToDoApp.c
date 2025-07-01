@@ -29,6 +29,7 @@ void addTask()
 
     char name[50];
     char description[150];
+    char priority[5];
 
     clearInputBuffer();
     printf("Enter the name of the task: ");
@@ -49,6 +50,15 @@ void addTask()
     }
     // fgets(description, sizeof(description), stdin);
     stripNewline(description); // Remove newline character from the end of the string
+
+    clearInputBuffer();
+    printf("Enter task priority (1-5): ");
+    if (fgets(priority, sizeof(priority), stdin) == NULL)
+    {
+        printf("Error reading task priority!\n");
+        return;
+    }
+    stripNewline(priority); // Remove newline character from the end of the string
 
     FILE *file = fopen("tasks.txt", "r");
     if (file == NULL)
@@ -82,10 +92,10 @@ void addTask()
     }
     else
     {
-        iD = (lineCount + 1) / 2;
+        iD = lineCount/3 + 1;
     }
 
-    fprintf(file, "%d. Task: %s\n...Description: %s\n", iD, name, description);
+    fprintf(file, "%d. Task: %s\n...Description: %s\n...Priority level: %s\n", iD, name, description, priority);
     fclose(file);
 }
 
@@ -106,7 +116,7 @@ void viewTasks()
     {
         printf("%s", line);
     }
-    printf("\nNo of tasks: %d\n", (l - 1) / 2);
+    printf("\nNo of tasks: %d\n", l/3 );
     fclose(viewFile);
 }
 
@@ -138,7 +148,7 @@ int countLinesInFile(char *filename)
 
 void deleteTask()
 {
-    int totalTasks = (l - 1) / 2; // Calculate total tasks based on the number of lines
+    int totalTasks = (l-1) / 3; // Calculate total tasks based on the number of lines
     clearInputBuffer();
     int toDelete;
     printf("Enter the task number to delete: ");
@@ -157,33 +167,51 @@ void deleteTask()
         return;
     }
 
-    int lc = countLinesInFile("tasks.txt");
+    //int lc = countLinesInFile("tasks.txt");
     int i = 0;
     char lines[100][250];
-    while (fgets(lines[i], sizeof(lines[i]), temp) && i < lc)
+    while (fgets(lines[i], sizeof(lines[i]), temp) && i < l)
     {
         i++;
     }
     fclose(temp);
-    FILE *rough = fopen("tasks.txt", "w");
-    if (rough == NULL)
+
+  /* FILE *tem = fopen("temp.txt", "w");
+    if (temp == NULL)
+    {
+        printf("Error opening temporary file for writing!\n");
+        return;
+    }
+    for (i = 0; i < l; i++){
+        for (int j = 0; j < strlen(lines[i]); j++)
+        {
+            fprintf(tem, "%c", lines[i][j]);
+    }
+
+}
+fclose(tem);*/
+
+    
+    FILE *file = fopen("tasks.txt", "w");
+    if (file == NULL)
     {
         printf("Error opening file for writing!\n");
         return;
     }
-    fprintf(rough, "TASKS :\n");
+    fprintf(file, "TASKS :\n");
+    fclose(file);
 
     i = 1;
     int j;
     char tsk[100];
     char desc[150];
-    int len;
+    char prio[100]; 
     int iD = 1;
 
-    while (i < lc)
+    while (i < l)
     {
 
-        if ((i + 1) / 2 == toDelete)
+        if ((i - 1)/3 + 1 == toDelete)
         {
             FILE *bin = fopen("bin.txt", "r");
             if (bin == NULL)
@@ -193,7 +221,6 @@ void deleteTask()
                 if (bin == NULL)
                 {
                     printf("Error creating bin file!\n");
-                    fclose(rough);
                     return;
                 }
                 fprintf(bin, "DELETED TASKS :\n");
@@ -209,20 +236,31 @@ void deleteTask()
                 }
             }
 
-            len = strlen(lines[i]);
+            //storing deleted task name
             for (j = 0; lines[i][j] != '\0'; j++)
             {
                 tsk[j] = lines[i][j + 3];
             }
             tsk[j] = '\0'; // Null-terminate the string
             i++;
-            len = strlen(lines[i]);
+            
+            //storing deleted task description
             for (j = 0; lines[i][j] != '\0'; j++)
             {
                 desc[j] = lines[i][j];
             }
             desc[j] = '\0'; // Null-terminate the string
             i++;
+            
+            //storing deleted task priority
+            for (j = 0; lines[i][j] != '\0'; j++)
+            {
+                prio[j] = lines[i][j];
+            }
+            prio[j] = '\0'; // Null-terminate the string
+            i++;
+
+            
             int BiD;
             int lineCount = countLinesInFile("bin.txt");
             if (lineCount == 0)
@@ -231,33 +269,56 @@ void deleteTask()
             }
             else
             {
-                BiD = (lineCount + 1) / 2;
+                BiD = lineCount / 3 + 1;
             }
-            fprintf(bin, "%d. %s%s", BiD, tsk, desc); // add deleted task to bin
+            
+            fprintf(bin, "%d. %s%s%s", BiD, tsk, desc, prio); // add deleted task to bin
             fclose(bin);
             continue;
         }
 
-        len = strlen(lines[i]);
-        for (j = 0; lines[i][j] != '\0'; j++)
+        else{
+        FILE *file = fopen("tasks.txt", "a");
+        if (file == NULL)
+        {
+            printf("Error opening file for writing!\n");
+            return;
+        }          
+        //storing task name
+        for (j = 0; lines[i][j] != '\0'; j++)            
         {
             tsk[j] = lines[i][j + 3];
         }
         tsk[j] = '\0'; // Null-terminate the string
         i++;
-        len = strlen(lines[i]);
-        for (j = 0; lines[i][j] != '\0'; j++)
+        
+        //storing description
+        for (j = 0; lines[i][j] != '\0'; j++)          
         {
             desc[j] = lines[i][j];
         }
         desc[j] = '\0'; // Null-terminate the string
         i++;
-        fprintf(rough, "%d. %s%s", iD, tsk, desc);
+        
+        //storing priority
+        for (j = 0; lines[i][j] != '\0'; j++)      
+        {
+            prio[j] = lines[i][j];
+        }
+        prio[j] = '\0'; // Null-terminate the string
+        i++;
+        fprintf(file, "%d. %s%s%s", iD, tsk, desc, prio);
         iD++;
+        fclose(file);
+        }
+        
     }
 
-    fclose(rough);
+    
 }
+
+
+
 
 // main function
 
@@ -304,6 +365,7 @@ int main()
             {
                 addTask();
                 printf("Task added successfully!\n");
+                l = countLinesInFile("tasks.txt");
             }
 
             else if (strcmp(command, "view") == 0)
@@ -314,6 +376,7 @@ int main()
             {
                 deleteTask();
                 printf("Task deleted successfully!\n");
+                l = countLinesInFile("tasks.txt");
             }
 
             else
@@ -323,6 +386,6 @@ int main()
             }
         }
     }
-
+    printf("\nNo of tasks: %d and No of lines in task_file: %d", (l-1)/3, l);
     return 0;
 }
