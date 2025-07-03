@@ -482,6 +482,57 @@ void changeTaskStatus()
 
 
 
+// 06 sorting tasks in a file
+
+void sortTasksInFile(FILE *file, int lineCount)
+{
+    if (file == NULL)
+    {
+        printf("Error opening file for sorting!\n");
+        return;
+    }
+    // Read all lines from the file into an array
+    char lines[100][250];
+    int i = 0;
+    while (fgets(lines[i], sizeof(lines[i]), file) && i < 100)
+    {
+        i++;
+    }
+    fclose(file);
+
+    //sorting tasks based on priority and writing them in a different file
+    FILE *sortedFile = fopen("SortedTasks.txt", "w");
+    fprintf(sortedFile, "SORTED TASKS :\n");
+    int Sid; 
+    // Sort the lines based on priority
+    for(int p=5; p>=1; p--){
+        for(i=3; i<lineCount; i+=3){
+            char priority[5];
+            sscanf(lines[i], "...Priority level: %s", priority);
+            if (atoi(priority) == p)
+            {
+                //fprintf("--* Priority level: %s --*\n", priority);
+                Sid = 1;
+                fprintf(sortedFile, "\n--* PRIORITY: %d *--\n", p);
+                fprintf(sortedFile, "%d", Sid);
+                for (int j=1; lines[i-2][j] != '\0'; j++)
+                {
+                    fprintf(sortedFile, "%c", lines[i-2][j]);
+                }
+                
+                fprintf(sortedFile, "%s",lines[i-1]);
+                Sid++;
+            }
+        }
+    }
+    fclose(sortedFile); 
+    viewTasks(fopen("SortedTasks.txt", "r"));
+    printf("\nTasks sorted successfully! \n");  
+        
+}
+
+
+
 // main function
 
 int main()
@@ -515,6 +566,7 @@ int main()
             printf("type 'view bin' to view deleted tasks\n");
             printf("type 'change status' to change task status to done\n");
             printf("type 'check' to check status of tasks\n");
+            printf("type 'sort' to sort tasks based on priority\n");
             printf("=========================================================\n");
 
             char command[20];
@@ -606,6 +658,53 @@ int main()
                 else
                 {
                     printf("Invalid status type. Please enter 'Done' or 'Not Done'.\n");
+                }
+            }
+
+            else if (strcmp(command, "sort") == 0)
+            {
+                printf("Which task you want to sort? Press \n1 for completed tasks\n2 for pending tasks\n3 for all tasks\n");
+                int sortChoice;
+                printf("Enter your choice: ");
+                scanf("%d", &sortChoice);
+                clearInputBuffer();
+                if (sortChoice == 1)
+                {
+                    FILE *doneFile = fopen("Done.txt", "r");
+                    if (doneFile == NULL)
+                    {
+                        printf("No tasks marked as done.\n");
+                        continue;
+                    }
+                    int lineCount = countLinesInFile("Done.txt");
+                    sortTasksInFile(doneFile, lineCount);
+                }
+                else if (sortChoice == 2)
+                {
+                    FILE *notDoneFile = fopen("NotDone.txt", "r");
+                    if (notDoneFile == NULL || countLinesInFile("NotDone.txt") <= 1)
+                    {
+                        printf("No tasks pending.\n");
+                        continue;
+                    }
+                    int lineCount = countLinesInFile("NotDone.txt");
+                    sortTasksInFile(notDoneFile, lineCount);
+                }
+                else if (sortChoice == 3)
+                {
+                    FILE *allTasksFile = fopen("tasks.txt", "r");
+                    if (allTasksFile == NULL)
+                    {
+                        printf("No tasks found.\n");
+                        continue;
+                    }
+                    int lineCount = countLinesInFile("tasks.txt");
+                    sortTasksInFile(allTasksFile, lineCount);
+                    
+                }
+                else
+                {
+                    printf("Invalid choice. Please enter 1, 2, or 3.\n");
                 }
             }
 
