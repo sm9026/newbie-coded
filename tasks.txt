@@ -19,3 +19,7 @@ TASKS :
 ...Description: barca match 
 ...Priority level: 2
 ...Status: Not Done
+6. Task: assignment
+...Description: maths
+...Priority level: 4
+...Status: Done
