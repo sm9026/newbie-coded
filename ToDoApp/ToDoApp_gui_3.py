@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 
 # =============================================================================
-# CORE LOGIC (UNCHANGED)
+# CORE LOGIC
 # =============================================================================
 
 def countLinesInFile(filename):
@@ -56,13 +56,13 @@ def logic_get_tasks_data():
                     'file_id': file_id,
                     'name': name,
                     'desc': desc,
-                    'prio': int(prio), # Convert to int for proper sorting
+                    'prio': int(prio),
                     'status': stat
                 })
         except IndexError:
             break
         except ValueError:
-            pass # Skip malformed priority
+            pass 
         i += 4
     return tasks
 
@@ -130,21 +130,51 @@ def logic_changeTaskStatus(file_id):
     return False, "Error finding task."
 
 # =============================================================================
+# HIGHLIGHT PERSISTENCE (New Helper Functions)
+# =============================================================================
+
+def load_highlights():
+    if not os.path.exists("highlights.txt"):
+        return set()
+    with open("highlights.txt", "r") as f:
+        content = f.read().strip()
+        if not content: return set()
+        # Convert "1,2,5" string back to set of integers {1, 2, 5}
+        try:
+            return set(map(int, content.split(',')))
+        except ValueError:
+            return set()
+
+def save_highlights(id_set):
+    with open("highlights.txt", "w") as f:
+        # Convert set {1, 2} to string "1,2"
+        f.write(",".join(map(str, id_set)))
+
+# =============================================================================
 # GUI IMPLEMENTATION
 # =============================================================================
 
 class TaskManagerGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("ToDoApp Pro Upgrade")
+        self.root.title("ToDoApp") # CHANGED TITLE
         self.root.geometry("750x600")
         self.root.configure(bg='#f4f4f4')
+        
+        # Load saved highlights
+        self.highlighted_ids = load_highlights()
 
         # --- 1. Header & Progress Bar ---
         header_frame = tk.Frame(root, bg='#f4f4f4')
         header_frame.pack(fill='x', padx=20, pady=10)
         
-        tk.Label(header_frame, text="🚀 Interactive Task Manager", font=("Segoe UI", 18, "bold"), bg='#f4f4f4', fg='#333').pack(side='left')
+        # Title Container
+        title_box = tk.Frame(header_frame, bg='#f4f4f4')
+        title_box.pack(side='left')
+        
+        # LABELS
+        tk.Label(title_box, text="ToDoApp", font=("Segoe UI", 20, "bold"), bg='#f4f4f4', fg='#333').pack(anchor='w')
+        tk.Label(title_box, text="Manage your tasks efficiently", font=("Segoe UI", 10), bg='#f4f4f4', fg='#777').pack(anchor='w')
         
         self.progress_var = tk.DoubleVar()
         self.progress_bar = ttk.Progressbar(header_frame, variable=self.progress_var, maximum=100, length=200)
@@ -153,7 +183,6 @@ class TaskManagerGUI:
         self.lbl_progress.pack(side='right', padx=5)
 
         # --- 2. Search & Sort Bar ---
-        # Created a generic container for both
         control_frame = tk.Frame(root, bg='#f4f4f4')
         control_frame.pack(fill='x', padx=20, pady=(0, 10))
         
@@ -161,9 +190,9 @@ class TaskManagerGUI:
         tk.Label(control_frame, text="🔍 Search:", bg='#f4f4f4', font=("Arial", 11)).pack(side='left')
         self.search_entry = tk.Entry(control_frame, font=("Arial", 11), width=25)
         self.search_entry.pack(side='left', padx=(5, 20))
-        self.search_entry.bind('<KeyRelease>', self.apply_filters) # Real-time search
+        self.search_entry.bind('<KeyRelease>', self.apply_filters)
 
-        # SORTING DROPDOWN
+        # SORTING
         tk.Label(control_frame, text="🔃 Sort By:", bg='#f4f4f4', font=("Arial", 11)).pack(side='left')
         
         self.sort_options = ["Default (Order Added)", "Priority (High -> Low)", "Priority (Low -> High)"]
@@ -197,11 +226,15 @@ class TaskManagerGUI:
         self.tree.pack(side='left', fill='both', expand=True)
         scrollbar.pack(side='right', fill='y')
 
+        # Tags for Color Coding
         self.tree.tag_configure('done', foreground='gray')
-        self.tree.tag_configure('high_prio', background='#ffcccc') 
+        # CHANGED: 'highlight' tag is now yellow
+        self.tree.tag_configure('highlight', background='#fff9c4') # Light Yellow
 
         # --- 4. Right-Click Menu ---
         self.context_menu = tk.Menu(root, tearoff=0)
+        self.context_menu.add_command(label="⭐ Highlight / Unhighlight", command=self.context_toggle_highlight) # NEW OPTION
+        self.context_menu.add_separator()
         self.context_menu.add_command(label="✅ Mark as Done", command=self.context_mark_done)
         self.context_menu.add_command(label="❌ Delete Task", command=self.context_delete)
         self.tree.bind("<Button-3>", self.show_context_menu) 
@@ -215,36 +248,29 @@ class TaskManagerGUI:
         tk.Button(btn_frame, text="♻️ Refresh", **b_style, command=self.refresh_table).pack(side='left', padx=5)
         tk.Button(btn_frame, text="📊 View Stats", **b_style, command=self.show_stats).pack(side='right', padx=20)
 
-        self.all_tasks = [] # Initialize empty list
+        self.all_tasks = []
         self.refresh_table()
 
     # --- GUI Logic ---
 
     def refresh_table(self):
         self.all_tasks = logic_get_tasks_data() 
-        self.apply_filters(None) # Re-apply search/sort
+        self.apply_filters(None) 
         self.update_progress()
 
     def apply_filters(self, event):
-        """ Handles both Searching and Sorting together """
-        # 1. SEARCH FILTER
         query = self.search_entry.get().lower()
         if query:
             filtered_data = [t for t in self.all_tasks if query in t['name'].lower() or query in t['desc'].lower()]
         else:
             filtered_data = self.all_tasks.copy()
 
-        # 2. SORTING LOGIC
         sort_mode = self.sort_var.get()
-        
         if sort_mode == "Priority (High -> Low)":
-            # Sort by Priority Descending
             filtered_data.sort(key=lambda x: x['prio'], reverse=True)
         elif sort_mode == "Priority (Low -> High)":
-            # Sort by Priority Ascending
             filtered_data.sort(key=lambda x: x['prio'], reverse=False)
         else:
-            # Default: Sort by ID (Added Order)
             filtered_data.sort(key=lambda x: x['file_id'])
 
         self.update_tree(filtered_data)
@@ -254,11 +280,17 @@ class TaskManagerGUI:
             self.tree.delete(i)
             
         for t in tasks_list:
-            tag = 'normal'
-            if t['status'] == 'Done': tag = 'done'
-            elif t['prio'] == 5: tag = 'high_prio'
+            tag_list = []
             
-            self.tree.insert('', 'end', values=(t['file_id'], t['name'], t['desc'], t['prio'], t['status']), tags=(tag,))
+            # Apply Done tag
+            if t['status'] == 'Done': 
+                tag_list.append('done')
+            
+            # Apply Manual Highlight tag (Overrides red priority)
+            if t['file_id'] in self.highlighted_ids:
+                tag_list.append('highlight')
+            
+            self.tree.insert('', 'end', values=(t['file_id'], t['name'], t['desc'], t['prio'], t['status']), tags=tuple(tag_list))
 
     def update_progress(self):
         total = len(self.all_tasks)
@@ -296,6 +328,19 @@ class TaskManagerGUI:
         logic_addTask(name, desc, str(prio))
         self.refresh_table()
 
+    def context_toggle_highlight(self):
+        """Toggles the highlight state of the selected task"""
+        file_id = self.get_selected_id()
+        if file_id:
+            if file_id in self.highlighted_ids:
+                self.highlighted_ids.remove(file_id)
+            else:
+                self.highlighted_ids.add(file_id)
+            
+            # Save to file immediately
+            save_highlights(self.highlighted_ids)
+            self.refresh_table()
+
     def context_mark_done(self):
         file_id = self.get_selected_id()
         if file_id:
@@ -310,6 +355,11 @@ class TaskManagerGUI:
         if file_id:
             if messagebox.askyesno("Confirm", f"Delete Task ID {file_id}?"):
                 success, msg = logic_deleteTask(file_id)
+                # Remove from highlights if it existed there to keep file clean
+                if file_id in self.highlighted_ids:
+                    self.highlighted_ids.remove(file_id)
+                    save_highlights(self.highlighted_ids)
+                
                 messagebox.showinfo("Result", msg)
                 self.refresh_table()
 
