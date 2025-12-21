@@ -1,0 +1,21 @@
+TASKS :
+1. Task: grocery
+...Description: buy eggs, bacon, cheese
+...Priority level: 3
+...Status: Not Done
+2. Task: study
+...Description: thermodynamics
+...Priority level: 5
+...Status: Not Done
+3. Task: report submission
+...Description: electronics
+...Priority level: 4
+...Status: Not Done
+4. Task: viva prep
+...Description: workshop
+...Priority level: 1
+...Status: Done
+5. Task: football
+...Description: barca match 
+...Priority level: 2
+...Status: Not Done

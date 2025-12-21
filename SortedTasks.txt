@@ -1,0 +1,26 @@
+SORTED TASKS :
+
+--* PRIORITY: 5 *--
+1. Task: study
+....Description: thermodynamics
+....Status: Not Done
+
+--* PRIORITY: 4 *--
+1. Task: report submission
+....Description: electronics
+....Status: Not Done
+
+--* PRIORITY: 3 *--
+1. Task: grocery
+....Description: buy eggs, bacon, cheese
+....Status: Not Done
+
+--* PRIORITY: 2 *--
+1. Task: football
+....Description: barca match
+....Status: Not Done
+
+--* PRIORITY: 1 *--
+1. Task: viva prep
+....Description: workshop
+....Status: Done
