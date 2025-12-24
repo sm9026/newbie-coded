@@ -112,20 +112,34 @@ def logic_deleteTask(file_id):
     if deleted: return True, "Task deleted."
     else: return False, "Task not found."
 
-def logic_changeTaskStatus(file_id):
+# --- UPDATED: Unified Status Change Logic ---
+def logic_setTaskStatus(file_id, target_status):
+    """
+    target_status: "Done" or "Not Done"
+    """
     with open("tasks.txt", "r") as f:
         lines = f.readlines()
     
     target_line_idx = 1 + (file_id - 1) * 5 + 3
     
     if target_line_idx < len(lines):
-        if "Not Done" in lines[target_line_idx]:
-             lines[target_line_idx] = "...Status: Done\n"
-             with open("tasks.txt", "w") as f:
-                 f.writelines(lines)
-             return True, "Marked as Done."
-        else:
-            return False, "Task is already Done."
+        current_line = lines[target_line_idx]
+        
+        if target_status == "Done":
+            if "Not Done" in current_line:
+                 lines[target_line_idx] = "...Status: Done\n"
+                 with open("tasks.txt", "w") as f: f.writelines(lines)
+                 return True, "Marked as Done."
+            else: return False, "Task is already Done."
+            
+        elif target_status == "Not Done":
+            # Check if it IS "Done" (and avoid matching "Not Done" substring)
+            if "Done" in current_line and "Not" not in current_line:
+                 lines[target_line_idx] = "...Status: Not Done\n"
+                 with open("tasks.txt", "w") as f: f.writelines(lines)
+                 return True, "Marked as Undone."
+            else: return False, "Task is already Not Done."
+            
     return False, "Error finding task."
 
 def logic_editTask(file_id, new_name, new_desc, new_prio, new_date):
@@ -241,6 +255,8 @@ class TaskManagerGUI:
         self.context_menu.add_separator()
         self.context_menu.add_command(label="⭐ Highlight / Unhighlight", command=self.context_toggle_highlight)
         self.context_menu.add_command(label="✅ Mark as Done", command=self.context_mark_done)
+        self.context_menu.add_command(label="↩️ Mark as Undone", command=self.context_mark_undone) # NEW OPTION
+        self.context_menu.add_separator()
         self.context_menu.add_command(label="❌ Delete Task", command=self.context_delete)
         self.tree.bind("<Button-3>", self.show_context_menu) 
 
@@ -417,15 +433,28 @@ class TaskManagerGUI:
     def context_mark_done(self):
         file_id = self.get_selected_id()
         if file_id:
-            success, msg = logic_changeTaskStatus(file_id)
+            # Passes "Done" as the target state
+            success, msg = logic_setTaskStatus(file_id, "Done")
             if success: 
-                # --- FIXED: Remove highlight if it exists ---
                 if file_id in self.highlighted_ids:
                     self.highlighted_ids.remove(file_id)
                     self.save_highlights(self.highlighted_ids)
-                # --------------------------------------------
                 self.refresh_table()
             else: messagebox.showwarning("Info", msg)
+
+    # --- NEW: Context Mark Undone Method ---
+    def context_mark_undone(self):
+        file_id = self.get_selected_id()
+        if file_id:
+            # 1. Ask for confirmation
+            confirm = messagebox.askyesno("Confirm", "Are you sure to mark this task undone?")
+            if confirm:
+                # 2. Passes "Not Done" as target state
+                success, msg = logic_setTaskStatus(file_id, "Not Done")
+                if success:
+                    self.refresh_table()
+                else:
+                    messagebox.showwarning("Info", msg)
 
     def context_delete(self):
         file_id = self.get_selected_id()
