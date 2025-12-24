@@ -112,11 +112,7 @@ def logic_deleteTask(file_id):
     if deleted: return True, "Task deleted."
     else: return False, "Task not found."
 
-# --- UPDATED: Unified Status Change Logic ---
 def logic_setTaskStatus(file_id, target_status):
-    """
-    target_status: "Done" or "Not Done"
-    """
     with open("tasks.txt", "r") as f:
         lines = f.readlines()
     
@@ -133,7 +129,6 @@ def logic_setTaskStatus(file_id, target_status):
             else: return False, "Task is already Done."
             
         elif target_status == "Not Done":
-            # Check if it IS "Done" (and avoid matching "Not Done" substring)
             if "Done" in current_line and "Not" not in current_line:
                  lines[target_line_idx] = "...Status: Not Done\n"
                  with open("tasks.txt", "w") as f: f.writelines(lines)
@@ -249,15 +244,8 @@ class TaskManagerGUI:
         self.tree.tag_configure('overdue', foreground='red')
         self.tree.tag_configure('today', foreground='#d35400')
 
-        # --- Context Menu ---
+        # --- Context Menu Init (Empty) ---
         self.context_menu = tk.Menu(root, tearoff=0)
-        self.context_menu.add_command(label="✏️ Edit Task", command=self.context_edit)
-        self.context_menu.add_separator()
-        self.context_menu.add_command(label="⭐ Highlight / Unhighlight", command=self.context_toggle_highlight)
-        self.context_menu.add_command(label="✅ Mark as Done", command=self.context_mark_done)
-        self.context_menu.add_command(label="↩️ Mark as Undone", command=self.context_mark_undone) # NEW OPTION
-        self.context_menu.add_separator()
-        self.context_menu.add_command(label="❌ Delete Task", command=self.context_delete)
         self.tree.bind("<Button-3>", self.show_context_menu) 
 
         # --- Buttons ---
@@ -328,8 +316,6 @@ class TaskManagerGUI:
             
         for t in tasks_list:
             tag_list = []
-            
-            # 1. Status Check
             if t['status'] == 'Done': 
                 tag_list.append('done')
             else:
@@ -337,7 +323,6 @@ class TaskManagerGUI:
                 if d_stat == 'overdue': tag_list.append('overdue')
                 elif d_stat == 'today': tag_list.append('today')
 
-            # 2. Highlight Check
             if t['file_id'] in self.highlighted_ids: 
                 tag_list.append('highlight')
             
@@ -350,10 +335,35 @@ class TaskManagerGUI:
             pending_count = len(self.all_tasks) - done_count
         self.lbl_pending.config(text=f"Pending Tasks: {pending_count}")
 
+    # --- CHANGED: Dynamic Menu Logic ---
     def show_context_menu(self, event):
         item = self.tree.identify_row(event.y)
         if item:
             self.tree.selection_set(item)
+            
+            # 1. Get current status from the treeview
+            # values = (id, name, desc, prio, date, status)
+            current_status = self.tree.item(item)['values'][5] # Status is index 5
+            
+            # 2. Clear previous menu items
+            self.context_menu.delete(0, tk.END)
+            
+            # 3. Rebuild the menu dynamically
+            self.context_menu.add_command(label="✏️ Edit Task", command=self.context_edit)
+            self.context_menu.add_separator()
+            self.context_menu.add_command(label="⭐ Highlight / Unhighlight", command=self.context_toggle_highlight)
+            
+            # CONDITIONAL ADDITION
+            if "Done" in current_status and "Not" not in current_status:
+                # If Status is DONE, show "Mark as Undone"
+                self.context_menu.add_command(label="↩️ Mark as Undone", command=self.context_mark_undone)
+            else:
+                # If Status is NOT DONE, show "Mark as Done"
+                self.context_menu.add_command(label="✅ Mark as Done", command=self.context_mark_done)
+            
+            self.context_menu.add_separator()
+            self.context_menu.add_command(label="❌ Delete Task", command=self.context_delete)
+            
             self.context_menu.post(event.x_root, event.y_root)
 
     def get_selected_id(self):
@@ -433,7 +443,6 @@ class TaskManagerGUI:
     def context_mark_done(self):
         file_id = self.get_selected_id()
         if file_id:
-            # Passes "Done" as the target state
             success, msg = logic_setTaskStatus(file_id, "Done")
             if success: 
                 if file_id in self.highlighted_ids:
@@ -442,14 +451,11 @@ class TaskManagerGUI:
                 self.refresh_table()
             else: messagebox.showwarning("Info", msg)
 
-    # --- NEW: Context Mark Undone Method ---
     def context_mark_undone(self):
         file_id = self.get_selected_id()
         if file_id:
-            # 1. Ask for confirmation
             confirm = messagebox.askyesno("Confirm", "Are you sure to mark this task undone?")
             if confirm:
-                # 2. Passes "Not Done" as target state
                 success, msg = logic_setTaskStatus(file_id, "Not Done")
                 if success:
                     self.refresh_table()
