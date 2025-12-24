@@ -1,25 +1,31 @@
 TASKS :
-1. Task: Task: grocery
+1. Task: grocery
 ...Description: buy eggs, bacon, cheese, bread
 ...Priority level: 3
 ...Status: Not Done
+...Due: 2025-12-31
 2. Task: study
 ...Description: thermodynamics
 ...Priority level: 5
-...Status: Not Done
+...Status: Done
+...Due: 2025-12-29
 3. Task: report submission
 ...Description: electronics
 ...Priority level: 4
 ...Status: Not Done
+...Due: 2026-01-02
 4. Task: viva prep
 ...Description: workshop
 ...Priority level: 1
-...Status: Done
-5. Task: football
-...Description: barca match 
-...Priority level: 2
 ...Status: Not Done
+...Due: 2025-12-23
+5. Task: football
+...Description: barca match
+...Priority level: 4
+...Status: Not Done
+...Due: 2025-12-24
 6. Task: assignment
 ...Description: maths
-...Priority level: 4
-...Status: Done
+...Priority level: 2
+...Status: Not Done
+...Due: 2025-12-30
