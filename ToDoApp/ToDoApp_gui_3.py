@@ -130,7 +130,7 @@ def logic_changeTaskStatus(file_id):
     return False, "Error finding task."
 
 # =============================================================================
-# HIGHLIGHT PERSISTENCE (New Helper Functions)
+# HIGHLIGHT PERSISTENCE
 # =============================================================================
 
 def load_highlights():
@@ -139,7 +139,6 @@ def load_highlights():
     with open("highlights.txt", "r") as f:
         content = f.read().strip()
         if not content: return set()
-        # Convert "1,2,5" string back to set of integers {1, 2, 5}
         try:
             return set(map(int, content.split(',')))
         except ValueError:
@@ -147,7 +146,6 @@ def load_highlights():
 
 def save_highlights(id_set):
     with open("highlights.txt", "w") as f:
-        # Convert set {1, 2} to string "1,2"
         f.write(",".join(map(str, id_set)))
 
 # =============================================================================
@@ -157,14 +155,13 @@ def save_highlights(id_set):
 class TaskManagerGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("ToDoApp") # CHANGED TITLE
+        self.root.title("ToDoApp")
         self.root.geometry("750x600")
         self.root.configure(bg='#f4f4f4')
         
-        # Load saved highlights
         self.highlighted_ids = load_highlights()
 
-        # --- 1. Header & Progress Bar ---
+        # --- 1. Header & Pending Count ---
         header_frame = tk.Frame(root, bg='#f4f4f4')
         header_frame.pack(fill='x', padx=20, pady=10)
         
@@ -172,15 +169,12 @@ class TaskManagerGUI:
         title_box = tk.Frame(header_frame, bg='#f4f4f4')
         title_box.pack(side='left')
         
-        # LABELS
         tk.Label(title_box, text="ToDoApp", font=("Segoe UI", 20, "bold"), bg='#f4f4f4', fg='#333').pack(anchor='w')
         tk.Label(title_box, text="Manage your tasks efficiently", font=("Segoe UI", 10), bg='#f4f4f4', fg='#777').pack(anchor='w')
         
-        self.progress_var = tk.DoubleVar()
-        self.progress_bar = ttk.Progressbar(header_frame, variable=self.progress_var, maximum=100, length=200)
-        self.progress_bar.pack(side='right', pady=5)
-        self.lbl_progress = tk.Label(header_frame, text="0%", bg='#f4f4f4', font=("Arial", 10))
-        self.lbl_progress.pack(side='right', padx=5)
+        # Pending Counter (Replaces Progress Bar)
+        self.lbl_pending = tk.Label(header_frame, text="Pending Tasks: 0", font=("Arial", 10, "bold"), bg='#f4f4f4', fg="#000000")
+        self.lbl_pending.pack(side='right', pady=5)
 
         # --- 2. Search & Sort Bar ---
         control_frame = tk.Frame(root, bg='#f4f4f4')
@@ -226,14 +220,12 @@ class TaskManagerGUI:
         self.tree.pack(side='left', fill='both', expand=True)
         scrollbar.pack(side='right', fill='y')
 
-        # Tags for Color Coding
         self.tree.tag_configure('done', foreground='gray')
-        # CHANGED: 'highlight' tag is now yellow
         self.tree.tag_configure('highlight', background='#fff9c4') # Light Yellow
 
         # --- 4. Right-Click Menu ---
         self.context_menu = tk.Menu(root, tearoff=0)
-        self.context_menu.add_command(label="⭐ Highlight / Unhighlight", command=self.context_toggle_highlight) # NEW OPTION
+        self.context_menu.add_command(label="⭐ Highlight / Unhighlight", command=self.context_toggle_highlight)
         self.context_menu.add_separator()
         self.context_menu.add_command(label="✅ Mark as Done", command=self.context_mark_done)
         self.context_menu.add_command(label="❌ Delete Task", command=self.context_delete)
@@ -246,7 +238,7 @@ class TaskManagerGUI:
         b_style = {'width': 15, 'bg': '#e1e1e1', 'font': ('Arial', 10)}
         tk.Button(btn_frame, text="➕ Add Task", **b_style, command=self.gui_addTask).pack(side='left', padx=20)
         tk.Button(btn_frame, text="♻️ Refresh", **b_style, command=self.refresh_table).pack(side='left', padx=5)
-        tk.Button(btn_frame, text="📊 View Stats", **b_style, command=self.show_stats).pack(side='right', padx=20)
+        # Removed View Stats Button
 
         self.all_tasks = []
         self.refresh_table()
@@ -256,7 +248,7 @@ class TaskManagerGUI:
     def refresh_table(self):
         self.all_tasks = logic_get_tasks_data() 
         self.apply_filters(None) 
-        self.update_progress()
+        self.update_stats_label() # Updates pending count
 
     def apply_filters(self, event):
         query = self.search_entry.get().lower()
@@ -281,27 +273,20 @@ class TaskManagerGUI:
             
         for t in tasks_list:
             tag_list = []
-            
-            # Apply Done tag
-            if t['status'] == 'Done': 
-                tag_list.append('done')
-            
-            # Apply Manual Highlight tag (Overrides red priority)
-            if t['file_id'] in self.highlighted_ids:
-                tag_list.append('highlight')
+            if t['status'] == 'Done': tag_list.append('done')
+            if t['file_id'] in self.highlighted_ids: tag_list.append('highlight')
             
             self.tree.insert('', 'end', values=(t['file_id'], t['name'], t['desc'], t['prio'], t['status']), tags=tuple(tag_list))
 
-    def update_progress(self):
-        total = len(self.all_tasks)
-        if total == 0:
-            pct = 0
+    def update_stats_label(self):
+        """ Calculates Pending tasks and updates label """
+        if not self.all_tasks:
+            pending_count = 0
         else:
             done_count = sum(1 for t in self.all_tasks if t['status'] == 'Done')
-            pct = (done_count / total) * 100
+            pending_count = len(self.all_tasks) - done_count
         
-        self.progress_var.set(pct)
-        self.lbl_progress.config(text=f"{int(pct)}%")
+        self.lbl_pending.config(text=f"Pending Tasks: {pending_count}")
 
     def show_context_menu(self, event):
         item = self.tree.identify_row(event.y)
@@ -329,15 +314,12 @@ class TaskManagerGUI:
         self.refresh_table()
 
     def context_toggle_highlight(self):
-        """Toggles the highlight state of the selected task"""
         file_id = self.get_selected_id()
         if file_id:
             if file_id in self.highlighted_ids:
                 self.highlighted_ids.remove(file_id)
             else:
                 self.highlighted_ids.add(file_id)
-            
-            # Save to file immediately
             save_highlights(self.highlighted_ids)
             self.refresh_table()
 
@@ -355,19 +337,11 @@ class TaskManagerGUI:
         if file_id:
             if messagebox.askyesno("Confirm", f"Delete Task ID {file_id}?"):
                 success, msg = logic_deleteTask(file_id)
-                # Remove from highlights if it existed there to keep file clean
                 if file_id in self.highlighted_ids:
                     self.highlighted_ids.remove(file_id)
                     save_highlights(self.highlighted_ids)
-                
                 messagebox.showinfo("Result", msg)
                 self.refresh_table()
-
-    def show_stats(self):
-        total = len(self.all_tasks)
-        done = sum(1 for t in self.all_tasks if t['status'] == 'Done')
-        msg = f"Total Tasks: {total}\nCompleted: {done}\nPending: {total - done}"
-        messagebox.showinfo("Statistics", msg)
 
 if __name__ == "__main__":
     root = tk.Tk()
