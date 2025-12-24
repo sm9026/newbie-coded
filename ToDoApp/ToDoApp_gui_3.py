@@ -129,6 +129,48 @@ def logic_changeTaskStatus(file_id):
             return False, "Task is already Done."
     return False, "Error finding task."
 
+# --- NEW: Logic to Edit Task ---
+def logic_editTask(file_id, new_name, new_desc, new_prio):
+    if not os.path.exists("tasks.txt"): return False, "File not found."
+    
+    with open("tasks.txt", "r") as f:
+        lines = f.readlines()
+        
+    # Calculate starting line index (1-based header skipped, so index 0 is line 1 in code logic logic_addTask, but here lines[] is 0-indexed including header)
+    # Wait, in logic_addTask header is written. 
+    # File structure:
+    # Line 0: TASKS :
+    # Line 1: 1. Task: Name
+    # ...
+    
+    # Task 1 starts at index 1.
+    # Task N starts at index 1 + (N-1)*4
+    start_idx = 1 + (file_id - 1) * 4
+    
+    if start_idx + 2 >= len(lines):
+        return False, "Task not found."
+        
+    # Construct the ID part string to preserve it (e.g., "1. ")
+    # The original line is "{iD}. Task: {name}\n"
+    # We want "{iD}. Task: {new_name}\n"
+    
+    current_line = lines[start_idx]
+    if ". " in current_line:
+        id_part = current_line.split(". ", 1)[0] + ". "
+    else:
+        id_part = f"{file_id}. " # Fallback
+        
+    # Update lines in memory
+    lines[start_idx] = f"{id_part}Task: {new_name}\n"
+    lines[start_idx+1] = f"...Description: {new_desc}\n"
+    lines[start_idx+2] = f"...Priority level: {new_prio}\n"
+    # Line start_idx+3 is Status, we leave it alone
+    
+    with open("tasks.txt", "w") as f:
+        f.writelines(lines)
+        
+    return True, "Task updated successfully."
+
 # =============================================================================
 # HIGHLIGHT PERSISTENCE
 # =============================================================================
@@ -189,7 +231,6 @@ class TaskManagerGUI:
         # SORTING
         tk.Label(control_frame, text="🔃 Sort By:", bg='#f4f4f4', font=("Arial", 11)).pack(side='left')
         
-        # CHANGED: Added Status Sorting Options
         self.sort_options = [
             "Default (Order Added)", 
             "Priority (High -> Low)", 
@@ -232,8 +273,9 @@ class TaskManagerGUI:
 
         # --- 4. Right-Click Menu ---
         self.context_menu = tk.Menu(root, tearoff=0)
-        self.context_menu.add_command(label="⭐ Highlight / Unhighlight", command=self.context_toggle_highlight)
+        self.context_menu.add_command(label="✏️ Edit Task", command=self.context_edit) # NEW OPTION
         self.context_menu.add_separator()
+        self.context_menu.add_command(label="⭐ Highlight / Unhighlight", command=self.context_toggle_highlight)
         self.context_menu.add_command(label="✅ Mark as Done", command=self.context_mark_done)
         self.context_menu.add_command(label="❌ Delete Task", command=self.context_delete)
         self.tree.bind("<Button-3>", self.show_context_menu) 
@@ -269,22 +311,13 @@ class TaskManagerGUI:
         
         if sort_mode == "Priority (High -> Low)":
             filtered_data.sort(key=lambda x: x['prio'], reverse=True)
-        
         elif sort_mode == "Priority (Low -> High)":
             filtered_data.sort(key=lambda x: x['prio'], reverse=False)
-            
         elif sort_mode == "Status (Pending First)":
-            # Sort Pending (Not Done) to appear before Done
-            # Logic: If 'Not Done' return 0, else 1
             filtered_data.sort(key=lambda x: 0 if "Not" in x['status'] else 1)
-            
         elif sort_mode == "Status (Completed First)":
-            # Sort Done to appear before Pending
-            # Logic: If 'Done' (and not 'Not Done') return 0, else 1
             filtered_data.sort(key=lambda x: 0 if "Done" in x['status'] and "Not" not in x['status'] else 1)
-            
         else:
-            # Default
             filtered_data.sort(key=lambda x: x['file_id'])
 
         self.update_tree(filtered_data)
@@ -333,6 +366,64 @@ class TaskManagerGUI:
         
         logic_addTask(name, desc, str(prio))
         self.refresh_table()
+
+    # --- NEW: Context Edit Method ---
+    def context_edit(self):
+        file_id = self.get_selected_id()
+        if not file_id: return
+        
+        # Get current data from the treeview selection
+        selected_item = self.tree.selection()[0]
+        vals = self.tree.item(selected_item)['values']
+        # vals = (id, name, desc, prio, status)
+        curr_name = vals[1]
+        curr_desc = vals[2]
+        curr_prio = vals[3]
+
+        # Create Custom Dialog Window
+        edit_win = tk.Toplevel(self.root)
+        edit_win.title("Edit Task")
+        edit_win.geometry("300x250")
+        
+        # Name
+        tk.Label(edit_win, text="Task Name:").pack(pady=(10, 0))
+        entry_name = tk.Entry(edit_win, width=30)
+        entry_name.pack(pady=5)
+        entry_name.insert(0, curr_name)
+        
+        # Description
+        tk.Label(edit_win, text="Description:").pack()
+        entry_desc = tk.Entry(edit_win, width=30)
+        entry_desc.pack(pady=5)
+        entry_desc.insert(0, curr_desc)
+        
+        # Priority
+        tk.Label(edit_win, text="Priority (1-5):").pack()
+        entry_prio = tk.Entry(edit_win, width=10)
+        entry_prio.pack(pady=5)
+        entry_prio.insert(0, curr_prio)
+        
+        def save_changes():
+            n = entry_name.get()
+            d = entry_desc.get()
+            try:
+                p = int(entry_prio.get())
+                if p < 1 or p > 5: raise ValueError
+            except ValueError:
+                messagebox.showerror("Error", "Priority must be 1-5")
+                return
+            
+            if n and d:
+                success, msg = logic_editTask(file_id, n, d, str(p))
+                if success:
+                    self.refresh_table()
+                    edit_win.destroy()
+                else:
+                    messagebox.showerror("Error", msg)
+            else:
+                 messagebox.showerror("Error", "Fields cannot be empty")
+
+        tk.Button(edit_win, text="💾 Save Changes", command=save_changes, bg='#e1e1e1').pack(pady=15)
 
     def context_toggle_highlight(self):
         file_id = self.get_selected_id()

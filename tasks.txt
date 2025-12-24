@@ -1,6 +1,6 @@
 TASKS :
-1. Task: grocery
-...Description: buy eggs, bacon, cheese
+1. Task: Task: grocery
+...Description: buy eggs, bacon, cheese, bread
 ...Priority level: 3
 ...Status: Not Done
 2. Task: study
