@@ -172,8 +172,8 @@ class TaskManagerGUI:
         tk.Label(title_box, text="ToDoApp", font=("Segoe UI", 20, "bold"), bg='#f4f4f4', fg='#333').pack(anchor='w')
         tk.Label(title_box, text="Manage your tasks efficiently", font=("Segoe UI", 10), bg='#f4f4f4', fg='#777').pack(anchor='w')
         
-        # Pending Counter (Replaces Progress Bar)
-        self.lbl_pending = tk.Label(header_frame, text="Pending Tasks: 0", font=("Arial", 10, "bold"), bg='#f4f4f4', fg="#000000")
+        # Pending Counter
+        self.lbl_pending = tk.Label(header_frame, text="Pending Tasks: 0", font=("Arial", 10, "bold"), bg='#f4f4f4', fg='#000000')
         self.lbl_pending.pack(side='right', pady=5)
 
         # --- 2. Search & Sort Bar ---
@@ -182,17 +182,24 @@ class TaskManagerGUI:
         
         # SEARCH
         tk.Label(control_frame, text="🔍 Search:", bg='#f4f4f4', font=("Arial", 11)).pack(side='left')
-        self.search_entry = tk.Entry(control_frame, font=("Arial", 11), width=25)
-        self.search_entry.pack(side='left', padx=(5, 20))
+        self.search_entry = tk.Entry(control_frame, font=("Arial", 11), width=20)
+        self.search_entry.pack(side='left', padx=(5, 15))
         self.search_entry.bind('<KeyRelease>', self.apply_filters)
 
         # SORTING
         tk.Label(control_frame, text="🔃 Sort By:", bg='#f4f4f4', font=("Arial", 11)).pack(side='left')
         
-        self.sort_options = ["Default (Order Added)", "Priority (High -> Low)", "Priority (Low -> High)"]
+        # CHANGED: Added Status Sorting Options
+        self.sort_options = [
+            "Default (Order Added)", 
+            "Priority (High -> Low)", 
+            "Priority (Low -> High)",
+            "Status (Pending First)",
+            "Status (Completed First)"
+        ]
         self.sort_var = tk.StringVar(value=self.sort_options[0])
         
-        self.sort_menu = ttk.Combobox(control_frame, textvariable=self.sort_var, values=self.sort_options, state="readonly", width=22)
+        self.sort_menu = ttk.Combobox(control_frame, textvariable=self.sort_var, values=self.sort_options, state="readonly", width=25)
         self.sort_menu.pack(side='left', padx=5)
         self.sort_menu.bind("<<ComboboxSelected>>", self.apply_filters)
 
@@ -221,7 +228,7 @@ class TaskManagerGUI:
         scrollbar.pack(side='right', fill='y')
 
         self.tree.tag_configure('done', foreground='gray')
-        self.tree.tag_configure('highlight', background='#fff9c4') # Light Yellow
+        self.tree.tag_configure('highlight', background='#fff9c4') 
 
         # --- 4. Right-Click Menu ---
         self.context_menu = tk.Menu(root, tearoff=0)
@@ -238,7 +245,6 @@ class TaskManagerGUI:
         b_style = {'width': 15, 'bg': '#e1e1e1', 'font': ('Arial', 10)}
         tk.Button(btn_frame, text="➕ Add Task", **b_style, command=self.gui_addTask).pack(side='left', padx=20)
         tk.Button(btn_frame, text="♻️ Refresh", **b_style, command=self.refresh_table).pack(side='left', padx=5)
-        # Removed View Stats Button
 
         self.all_tasks = []
         self.refresh_table()
@@ -248,21 +254,37 @@ class TaskManagerGUI:
     def refresh_table(self):
         self.all_tasks = logic_get_tasks_data() 
         self.apply_filters(None) 
-        self.update_stats_label() # Updates pending count
+        self.update_stats_label() 
 
     def apply_filters(self, event):
+        # 1. Search Filter
         query = self.search_entry.get().lower()
         if query:
             filtered_data = [t for t in self.all_tasks if query in t['name'].lower() or query in t['desc'].lower()]
         else:
             filtered_data = self.all_tasks.copy()
 
+        # 2. Sort Logic
         sort_mode = self.sort_var.get()
+        
         if sort_mode == "Priority (High -> Low)":
             filtered_data.sort(key=lambda x: x['prio'], reverse=True)
+        
         elif sort_mode == "Priority (Low -> High)":
             filtered_data.sort(key=lambda x: x['prio'], reverse=False)
+            
+        elif sort_mode == "Status (Pending First)":
+            # Sort Pending (Not Done) to appear before Done
+            # Logic: If 'Not Done' return 0, else 1
+            filtered_data.sort(key=lambda x: 0 if "Not" in x['status'] else 1)
+            
+        elif sort_mode == "Status (Completed First)":
+            # Sort Done to appear before Pending
+            # Logic: If 'Done' (and not 'Not Done') return 0, else 1
+            filtered_data.sort(key=lambda x: 0 if "Done" in x['status'] and "Not" not in x['status'] else 1)
+            
         else:
+            # Default
             filtered_data.sort(key=lambda x: x['file_id'])
 
         self.update_tree(filtered_data)
@@ -279,7 +301,6 @@ class TaskManagerGUI:
             self.tree.insert('', 'end', values=(t['file_id'], t['name'], t['desc'], t['prio'], t['status']), tags=tuple(tag_list))
 
     def update_stats_label(self):
-        """ Calculates Pending tasks and updates label """
         if not self.all_tasks:
             pending_count = 0
         else:
